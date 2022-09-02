@@ -1,10 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Head from "next/head";
+import { Box, Stack } from "@chakra-ui/react";
 import { WalletConnectButton } from "../components/WalletConnectButton";
 import { GetStxButton } from "../components/GetStxButton";
 import { TransactionsTable } from "../components/TransactionsTable";
+import { NetworkToggle } from "../components/NetworkToggle";
 import { useAuth, useAccount } from "@micro-stacks/react";
 import { getDehydratedStateFromSession } from "../common/session-helpers";
+import { connectWebSocketClient } from "@stacks/blockchain-api-client";
 import type { NextPage, GetServerSidePropsContext } from "next";
 import type { TransactionResults } from "@stacks/stacks-blockchain-api-types";
 
@@ -22,16 +25,25 @@ const Home: NextPage = () => {
   const [transactions, setTransactions] = useState<
     TransactionResults | undefined
   >();
+  const subscription = useRef();
 
   useEffect(() => {
-    if (isSignedIn) {
+    if (isSignedIn && stxAddress) {
       fetch(
         `https://stacks-node-api.testnet.stacks.co/extended/v1/address/${stxAddress}/transactions`
       )
         .then((response) => response.json())
         .then(setTransactions)
         .catch(console.log);
+
+      connectWebSocketClient("wss://stacks-node-api.testnet.stacks.co/").then(
+        (client) =>
+          client.subscribeAddressTransactions(stxAddress, (event) =>
+            console.log(event)
+          )
+      );
     }
+    return;
   }, [isSignedIn, stxAddress]);
 
   return (
@@ -39,19 +51,27 @@ const Home: NextPage = () => {
       <Head>
         <title>Stacks Dashboard</title>
         <link rel="icon" href="favicon.ico" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap"
+        />
       </Head>
-
-      <div>
-        <WalletConnectButton />
-      </div>
-      {isSignedIn && (
-        <div>
-          <GetStxButton address={stxAddress} />
-          {transactions && transactions.results.length > 0 && (
-            <TransactionsTable transactions={transactions} />
+      <Box p={4}>
+        <Stack direction="row" spacing={4}>
+          <WalletConnectButton />
+          {isSignedIn && (
+            <>
+              <NetworkToggle />
+              <GetStxButton address={stxAddress} />
+            </>
           )}
-        </div>
-      )}
+        </Stack>
+        {isSignedIn && transactions && transactions.results.length > 0 && (
+          <Box py={8}>
+            <TransactionsTable transactions={transactions} />
+          </Box>
+        )}
+      </Box>
     </>
   );
 };

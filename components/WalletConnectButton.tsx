@@ -1,22 +1,18 @@
 import { useAuth } from "@micro-stacks/react";
+import { Button } from "@chakra-ui/react";
 
 export const WalletConnectButton = () => {
   const { openAuthRequest, isRequestPending, signOut, isSignedIn } = useAuth();
 
-  const label = isRequestPending
-    ? "Loading..."
-    : isSignedIn
-    ? "Sign out"
-    : "Connect Stacks wallet";
-    
   return (
-    <button
+    <Button
+      isLoading={isRequestPending}
       onClick={() => {
         if (isSignedIn) signOut();
         else openAuthRequest();
       }}
     >
-      {label}
-    </button>
+      {isSignedIn ? "Sign out" : "Connect wallet"}
+    </Button>
   );
 };

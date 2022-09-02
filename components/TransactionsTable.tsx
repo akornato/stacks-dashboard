@@ -1,30 +1,44 @@
+import {
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  TableCaption,
+  TableContainer,
+} from "@chakra-ui/react";
 import type { TransactionResults } from "@stacks/stacks-blockchain-api-types";
 
 export const TransactionsTable: React.FC<{
   transactions: TransactionResults;
 }> = ({ transactions }) => {
-  console.log(transactions);
   return (
-    <table>
-      <thead>
-        <tr>
-          <th>Tx ID</th>
-          <th>Tx Status</th>
-          <th>Tx Type</th>
-          <th>Amount</th>
-        </tr>
-      </thead>
-      <tbody>
-        {transactions.results.map((tx) => (
-          <tr key={tx.tx_id}>
-            <td>{tx.tx_id}</td>
-            <td>{tx.tx_status}</td>
-            <td>{tx.tx_type}</td>
-            {/* @ts-ignore */}
-            <td>{tx.token_transfer?.amount || ""}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <TableContainer>
+      <Table size="sm">
+        <TableCaption>Transactions</TableCaption>
+        <Thead>
+          <Tr>
+            <Th>Tx ID</Th>
+            <Th>Block</Th>
+            <Th>Tx Status</Th>
+            <Th>Tx Type</Th>
+            <Th>Amount</Th>
+          </Tr>
+        </Thead>
+        <Tbody>
+          {transactions.results.map((tx) => (
+            <Tr key={tx.tx_id}>
+              <Td>{tx.tx_id}</Td>
+              <Td>{tx.block_height}</Td>
+              <Td>{tx.tx_status}</Td>
+              <Td>{tx.tx_type}</Td>
+              {/* @ts-ignore */}
+              <Td>{tx.token_transfer?.amount || ""}</Td>
+            </Tr>
+          ))}
+        </Tbody>
+      </Table>
+    </TableContainer>
   );
 };

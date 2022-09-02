@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { ClientProvider } from "@micro-stacks/react";
+import { ChakraProvider } from "@chakra-ui/react";
 import { destroySession, saveSession } from "../common/fetchers";
 import type { AppProps } from "next/app";
 
@@ -17,7 +18,9 @@ function MyApp({ Component, pageProps }: AppProps) {
         await destroySession();
       }, [])}
     >
-      <Component {...pageProps} />
+      <ChakraProvider>
+        <Component {...pageProps} />
+      </ChakraProvider>
     </ClientProvider>
   );
 }

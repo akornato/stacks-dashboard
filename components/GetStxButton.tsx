@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Button } from "@chakra-ui/react";
 
 export const GetStxButton: React.FC<{ address?: string }> = ({ address }) => {
   const [isFetching, setIsFetching] = useState(false);
@@ -22,8 +23,8 @@ export const GetStxButton: React.FC<{ address?: string }> = ({ address }) => {
   };
 
   return (
-    <button onClick={getSTX} disabled={!address || isFetching}>
-      {isFetching ? "Getting STX..." : "Get STX"}
-    </button>
+    <Button onClick={getSTX} isLoading={isFetching}>
+      Get STX
+    </Button>
   );
 };
