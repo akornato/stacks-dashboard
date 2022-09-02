@@ -1,4 +1,6 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+## Stacks Dashboard
+
+This app caches and shows user transactions in [Stacks](https://www.stacks.co) blockchain. [Hiro Stacks API](https://docs.hiro.so/api) is used to fetch Stacks data, and [micro-stacks](https://github.com/fungible-systems/micro-stacks) to communicate with [Hiro Wallet](https://wallet.hiro.so). [Next.js](https://nextjs.org/) with [iron-session](https://github.com/vvo/iron-session) are used to server side render a persisted state of the Hiro Wallet.
 
 ## Getting Started
 
