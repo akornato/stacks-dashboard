@@ -1,6 +1,8 @@
 ## Stacks Dashboard
 
-This app caches and shows user transactions in [Stacks](https://www.stacks.co) blockchain. [Hiro Stacks API](https://docs.hiro.so/api) is used to fetch Stacks data, and [micro-stacks](https://github.com/fungible-systems/micro-stacks) to communicate with [Hiro Wallet](https://wallet.hiro.so). [Next.js](https://nextjs.org/) with [iron-session](https://github.com/vvo/iron-session) are used to server side render a persisted state of the Hiro Wallet.
+This app displays user transactions in [Stacks](https://www.stacks.co) blockchain. [Hiro Stacks API](https://docs.hiro.so/api) and [micro-stacks](https://github.com/fungible-systems/micro-stacks) are used to communicate with Stacks and [Hiro Wallet](https://wallet.hiro.so). [Next.js](https://nextjs.org/) with [iron-session](https://github.com/vvo/iron-session) are used to Server Side Render on a persisted state of the Hiro Wallet.
+
+Deployed at https://stacks-dashboard.vercel.app
 
 ## Getting Started
 
