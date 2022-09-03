@@ -25,6 +25,9 @@ const Home: NextPage = () => {
   const [transactions, setTransactions] = useState<
     TransactionResults | undefined
   >();
+  const [mempoolTransactions, setMempoolTransactions] = useState<
+    TransactionResults | undefined
+  >();
   const subscription = useRef();
 
   useEffect(() => {
@@ -34,6 +37,13 @@ const Home: NextPage = () => {
       )
         .then((response) => response.json())
         .then(setTransactions)
+        .catch(console.log);
+
+      fetch(
+        `https://stacks-node-api.testnet.stacks.co/extended/v1/tx/mempool?recipient_address=${stxAddress}`
+      )
+        .then((response) => response.json())
+        .then(setMempoolTransactions)
         .catch(console.log);
 
       connectWebSocketClient("wss://stacks-node-api.testnet.stacks.co/").then(
@@ -66,9 +76,14 @@ const Home: NextPage = () => {
             </>
           )}
         </Stack>
-        {isSignedIn && transactions && transactions.results.length > 0 && (
-          <Box py={8}>
-            <TransactionsTable transactions={transactions} />
+        {isSignedIn && (
+          <Box mt={8}>
+            <TransactionsTable
+              transactions={[
+                ...(mempoolTransactions?.results || []),
+                ...(transactions?.results || []),
+              ]}
+            />
           </Box>
         )}
       </Box>

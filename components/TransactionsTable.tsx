@@ -11,7 +11,7 @@ import {
 import type { TransactionResults } from "@stacks/stacks-blockchain-api-types";
 
 export const TransactionsTable: React.FC<{
-  transactions: TransactionResults;
+  transactions?: TransactionResults["results"];
 }> = ({ transactions }) => {
   return (
     <TableContainer>
@@ -27,7 +27,7 @@ export const TransactionsTable: React.FC<{
           </Tr>
         </Thead>
         <Tbody>
-          {transactions.results.map((tx) => (
+          {transactions?.map((tx) => (
             <Tr key={tx.tx_id}>
               <Td>{tx.tx_id}</Td>
               <Td>{tx.block_height}</Td>

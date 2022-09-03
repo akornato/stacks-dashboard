@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Button } from "@chakra-ui/react";
+import { Button, useToast } from "@chakra-ui/react";
 
 export const GetStxButton: React.FC<{ address?: string }> = ({ address }) => {
   const [isFetching, setIsFetching] = useState(false);
+  const toast = useToast();
 
   const getSTX = () => {
     setIsFetching(true);
@@ -16,9 +17,20 @@ export const GetStxButton: React.FC<{ address?: string }> = ({ address }) => {
         stacking: false,
       }),
     })
-      .then((response) => response.json())
-      .then(console.log)
-      .catch(console.log)
+      .then((response) => {
+        if (response.ok) {
+          toast({
+            description: `STX requested`,
+            status: "success",
+            isClosable: true,
+          });
+        } else {
+          throw new Error(`Network status ${response.status}`);
+        }
+      })
+      .catch((error) =>
+        toast({ description: error.message, status: "error", isClosable: true })
+      )
       .finally(() => setIsFetching(false));
   };
 
