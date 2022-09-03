@@ -8,8 +8,12 @@ import { NetworkToggle } from "../components/NetworkToggle";
 import { useAuth, useAccount } from "@micro-stacks/react";
 import { getDehydratedStateFromSession } from "../common/session-helpers";
 import { connectWebSocketClient } from "@stacks/blockchain-api-client";
+import { xorBy } from "lodash";
 import type { NextPage, GetServerSidePropsContext } from "next";
-import type { TransactionResults } from "@stacks/stacks-blockchain-api-types";
+import type {
+  Transaction,
+  TransactionResults,
+} from "@stacks/stacks-blockchain-api-types";
 
 export async function getServerSideProps(ctx: GetServerSidePropsContext) {
   return {
@@ -22,38 +26,56 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 const Home: NextPage = () => {
   const { isSignedIn } = useAuth();
   const { stxAddress } = useAccount();
-  const [transactions, setTransactions] = useState<
-    TransactionResults | undefined
-  >();
-  const [mempoolTransactions, setMempoolTransactions] = useState<
-    TransactionResults | undefined
-  >();
-  const subscription = useRef();
+  const [transactions, setTransactions] = useState<Transaction[] | undefined>();
 
   useEffect(() => {
     if (isSignedIn && stxAddress) {
-      fetch(
-        `https://stacks-node-api.testnet.stacks.co/extended/v1/address/${stxAddress}/transactions`
-      )
-        .then((response) => response.json())
-        .then(setTransactions)
-        .catch(console.log);
-
-      fetch(
-        `https://stacks-node-api.testnet.stacks.co/extended/v1/tx/mempool?recipient_address=${stxAddress}`
-      )
-        .then((response) => response.json())
-        .then(setMempoolTransactions)
-        .catch(console.log);
-
-      connectWebSocketClient("wss://stacks-node-api.testnet.stacks.co/").then(
-        (client) =>
-          client.subscribeAddressTransactions(stxAddress, (event) =>
-            console.log(event)
+      Promise.all([
+        fetch(
+          `https://stacks-node-api.testnet.stacks.co/extended/v1/tx/mempool?recipient_address=${stxAddress}`
+        ).then((response) => response.json()),
+        fetch(
+          `https://stacks-node-api.testnet.stacks.co/extended/v1/address/${stxAddress}/transactions`
+        ).then((response) => response.json()),
+      ]).then(
+        ([mempoolTransactionResults, transactionResults]: [
+          mempoolTransactionResults: TransactionResults,
+          transactionResults: TransactionResults
+        ]) =>
+          setTransactions(
+            xorBy(
+              mempoolTransactionResults?.results,
+              transactionResults?.results,
+              (transaction) => transaction.tx_id
+            )
           )
       );
+
+      connectWebSocketClient("wss://stacks-node-api.testnet.stacks.co/").then(
+        (client) => {
+          client.subscribeBlocks((event) =>
+            console.log("subscribeBlocks event", event)
+          );
+          client.subscribeAddressTransactions(stxAddress, async (event) => {
+            console.log("subscribeAddressTransactions event", event);
+            fetch(
+              `https://stacks-node-api.testnet.stacks.co/extended/v1/tx/${event.tx_id}`
+            )
+              .then((response) => response.json())
+              .then((transaction: Transaction) => {
+                console.log("transaction", transaction);
+                setTransactions((transactions) =>
+                  xorBy(
+                    [transaction],
+                    transactions,
+                    (transaction) => transaction.tx_id
+                  )
+                );
+              });
+          });
+        }
+      );
     }
-    return;
   }, [isSignedIn, stxAddress]);
 
   return (
@@ -78,17 +100,7 @@ const Home: NextPage = () => {
         </Stack>
         {isSignedIn && (
           <Box mt={8}>
-            <TransactionsTable
-              transactions={[
-                ...(mempoolTransactions?.results.filter((mempoolTransaction) =>
-                  !transactions?.results.some(
-                    (transaction) =>
-                      transaction.tx_id === mempoolTransaction.tx_id
-                  )
-                ) || []),
-                ...(transactions?.results || []),
-              ]}
-            />
+            <TransactionsTable transactions={transactions} />
           </Box>
         )}
       </Box>

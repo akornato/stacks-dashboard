@@ -8,10 +8,10 @@ import {
   TableCaption,
   TableContainer,
 } from "@chakra-ui/react";
-import type { TransactionResults } from "@stacks/stacks-blockchain-api-types";
+import type { Transaction } from "@stacks/stacks-blockchain-api-types";
 
 export const TransactionsTable: React.FC<{
-  transactions?: TransactionResults["results"];
+  transactions?: Transaction[];
 }> = ({ transactions }) => {
   return (
     <TableContainer>

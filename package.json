@@ -16,6 +16,7 @@
     "@stacks/blockchain-api-client": "^4.1.2",
     "framer-motion": "^7.2.1",
     "iron-session": "^6.2.0",
+    "lodash": "^4.17.21",
     "next": "12.2.5",
     "react": "18.2.0",
     "react-dom": "18.2.0"
