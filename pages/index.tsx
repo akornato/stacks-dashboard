@@ -80,7 +80,12 @@ const Home: NextPage = () => {
           <Box mt={8}>
             <TransactionsTable
               transactions={[
-                ...(mempoolTransactions?.results || []),
+                ...(mempoolTransactions?.results.filter((mempoolTransaction) =>
+                  !transactions?.results.some(
+                    (transaction) =>
+                      transaction.tx_id === mempoolTransaction.tx_id
+                  )
+                ) || []),
                 ...(transactions?.results || []),
               ]}
             />
