@@ -7,13 +7,20 @@ import {
   Td,
   TableCaption,
   TableContainer,
+  Spinner,
+  Center,
 } from "@chakra-ui/react";
 import type { Transaction } from "@stacks/stacks-blockchain-api-types";
 
 export const TransactionsTable: React.FC<{
   transactions: Transaction[];
-}> = ({ transactions }) => {
-  return (
+  isLoading: boolean;
+}> = ({ transactions, isLoading }) => {
+  return isLoading ? (
+    <Center>
+      <Spinner size="xl" />
+    </Center>
+  ) : (
     <TableContainer>
       <Table size="sm">
         <TableCaption>Transactions</TableCaption>

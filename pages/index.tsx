@@ -5,7 +5,7 @@ import { WalletConnectButton } from "../components/WalletConnectButton";
 import { GetStxButton } from "../components/GetStxButton";
 import { TransactionsTable } from "../components/TransactionsTable";
 import { NetworkToggle } from "../components/NetworkToggle";
-import { useAuth, useAccount } from "@micro-stacks/react";
+import { useAuth, useAccount, useNetwork } from "@micro-stacks/react";
 import { getDehydratedStateFromSession } from "../common/session-helpers";
 import {
   connectWebSocketClient,
@@ -29,15 +29,19 @@ type Subscription = Awaited<
 const Home: NextPage = () => {
   const { isSignedIn } = useAuth();
   const { stxAddress } = useAccount();
+  const { isMainnet } = useNetwork();
+  const [isLoading, setIsLoading] = useState(true);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [wsClient, setWsClient] = useState<StacksApiWebSocketClient>();
   const subscriptions = useRef<{ [tx_id: string]: Subscription }>({});
 
   useEffect(() => {
-    connectWebSocketClient("wss://stacks-node-api.testnet.stacks.co/").then(
-      setWsClient
-    );
-  }, []);
+    if (isSignedIn) {
+      connectWebSocketClient(
+        `wss://stacks-node-api.${isMainnet ? "mainnet" : "testnet"}.stacks.co/`
+      ).then(setWsClient);
+    }
+  }, [isSignedIn, isMainnet]);
 
   const fetchTransaction = useCallback(
     (tx_id: string) =>
@@ -125,11 +129,14 @@ const Home: NextPage = () => {
   useEffect(() => {
     if (isSignedIn && stxAddress && wsClient) {
       const readAndUpdateCachedTransactions = async () => {
+        setIsLoading(true);
         const cachedTransactions: Transaction[] = await fetch(
           `/api/cache/${stxAddress}/read`
         ).then((response) => response.json());
 
         setTransactions(cachedTransactions);
+
+        setIsLoading(false);
 
         cachedTransactions
           // @ts-ignore
@@ -147,6 +154,7 @@ const Home: NextPage = () => {
       });
 
     if (!isSignedIn) {
+      setTransactions([]);
       unsubscribeAll();
     }
 
@@ -175,7 +183,10 @@ const Home: NextPage = () => {
         </Stack>
         {isSignedIn && (
           <Box mt={8}>
-            <TransactionsTable transactions={transactions} />
+            <TransactionsTable
+              transactions={transactions}
+              isLoading={isLoading}
+            />
           </Box>
         )}
       </Box>
