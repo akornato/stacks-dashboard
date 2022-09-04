@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Head from "next/head";
 import { Box, Stack } from "@chakra-ui/react";
 import { WalletConnectButton } from "../components/WalletConnectButton";
@@ -8,7 +8,7 @@ import { NetworkToggle } from "../components/NetworkToggle";
 import { useAuth, useAccount } from "@micro-stacks/react";
 import { getDehydratedStateFromSession } from "../common/session-helpers";
 import { connectWebSocketClient } from "@stacks/blockchain-api-client";
-import { xorBy } from "lodash";
+import { unionBy } from "lodash";
 import type { NextPage, GetServerSidePropsContext } from "next";
 import type {
   Transaction,
@@ -29,27 +29,47 @@ const Home: NextPage = () => {
   const [transactions, setTransactions] = useState<Transaction[] | undefined>();
 
   useEffect(() => {
+    console.log(isSignedIn, stxAddress);
     if (isSignedIn && stxAddress) {
-      Promise.all([
-        fetch(
-          `https://stacks-node-api.testnet.stacks.co/extended/v1/tx/mempool?recipient_address=${stxAddress}`
-        ).then((response) => response.json()),
-        fetch(
-          `https://stacks-node-api.testnet.stacks.co/extended/v1/address/${stxAddress}/transactions`
-        ).then((response) => response.json()),
-      ]).then(
-        ([mempoolTransactionResults, transactionResults]: [
+      const getTransactions = async () => {
+        const cachedTransactions: Transaction[] = await fetch(
+          `/api/cache/${stxAddress}/find`
+        ).then((response) => response.json());
+
+        console.log("cachedTransactions", cachedTransactions);
+
+        const [mempoolTransactionResults, transactionResults]: [
           mempoolTransactionResults: TransactionResults,
           transactionResults: TransactionResults
-        ]) =>
-          setTransactions(
-            xorBy(
-              mempoolTransactionResults?.results,
-              transactionResults?.results,
-              (transaction) => transaction.tx_id
-            )
+        ] = await Promise.all([
+          fetch(
+            `https://stacks-node-api.testnet.stacks.co/extended/v1/tx/mempool?recipient_address=${stxAddress}`
+          ).then((response) => response.json()),
+          fetch(
+            `https://stacks-node-api.testnet.stacks.co/extended/v1/address/${stxAddress}/transactions?offset=${cachedTransactions.length}`
+          ).then((response) => response.json()),
+        ]);
+
+        fetch(`/api/cache/${stxAddress}/create`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(transactionResults?.results),
+        });
+
+        console.log("transactionResults", transactionResults);
+
+        setTransactions(
+          unionBy(
+            cachedTransactions,
+            transactionResults?.results,
+            mempoolTransactionResults?.results,
+            (transaction) => transaction.tx_id
           )
-      );
+        );
+      };
+      getTransactions();
 
       connectWebSocketClient("wss://stacks-node-api.testnet.stacks.co/").then(
         (client) => {
@@ -65,7 +85,7 @@ const Home: NextPage = () => {
               .then((transaction: Transaction) => {
                 console.log("transaction", transaction);
                 setTransactions((transactions) =>
-                  xorBy(
+                  unionBy(
                     [transaction],
                     transactions,
                     (transaction) => transaction.tx_id
