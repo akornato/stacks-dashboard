@@ -3,8 +3,9 @@ import { Button, useToast } from "@chakra-ui/react";
 
 export const GetStxButton: React.FC<{
   address?: string;
+  known_tx_ids: string[];
   onSuccess: (tx_id: string) => void;
-}> = ({ address, onSuccess }) => {
+}> = ({ address, known_tx_ids, onSuccess }) => {
   const [isFetching, setIsFetching] = useState(false);
   const toast = useToast();
 
@@ -21,19 +22,32 @@ export const GetStxButton: React.FC<{
       }),
     })
       .then((response) => {
-        if (response.ok) {
-          toast({
-            description: `STX requested`,
-            status: "success",
-            isClosable: true,
-          });
-          response.json().then(({ txId }) => onSuccess(txId));
-        } else {
-          throw new Error(`Network status ${response.status}`);
+        if (!response.ok) {
+          throw Error(response.statusText);
         }
+        response.json().then(({ txId }) => {
+          if (known_tx_ids.some((tx_id) => tx_id === txId)) {
+            toast({
+              description: `STX requested ok but the returned txId ${txId} already exists...`,
+              status: "error",
+              isClosable: true,
+            });
+          } else {
+            toast({
+              description: `STX requested`,
+              status: "success",
+              isClosable: true,
+            });
+            onSuccess(txId);
+          }
+        });
       })
       .catch((error) =>
-        toast({ description: error.message, status: "error", isClosable: true })
+        toast({
+          description: error.message,
+          status: "error",
+          isClosable: true,
+        })
       )
       .finally(() => setIsFetching(false));
   };

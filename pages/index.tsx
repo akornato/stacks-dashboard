@@ -167,6 +167,7 @@ const Home: NextPage = () => {
               <NetworkToggle />
               <GetStxButton
                 address={stxAddress}
+                known_tx_ids={transactions.map(({ tx_id }) => tx_id)}
                 onSuccess={createTransaction}
               />
             </>
