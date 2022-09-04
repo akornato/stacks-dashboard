@@ -8,8 +8,9 @@ export const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     where: { user: req.query.user?.toString() },
   });
   res.status(200).json(
-    transactions.map(({ token_transfer_amount, ...rest }) => ({
+    transactions.map(({ token_transfer_amount, block_height, ...rest }) => ({
       ...rest,
+      ...(block_height ? { block_height } : {}),
       ...(token_transfer_amount
         ? { token_transfer: { amount: token_transfer_amount } }
         : {}),

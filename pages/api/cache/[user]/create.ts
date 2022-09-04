@@ -11,7 +11,7 @@ export const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     data: {
       user: user?.toString() || "",
       tx_id: transaction.tx_id,
-      block_height: transaction.block_height,
+      block_height: transaction.block_height || 0,
       tx_status: transaction.tx_status,
       tx_type: transaction.tx_type,
       /* @ts-ignore */
