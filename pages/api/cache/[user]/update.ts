@@ -7,7 +7,8 @@ const prisma = new PrismaClient();
 export const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   const { user } = req.query;
   const transaction: Transaction = req.body;
-  await prisma.transaction.create({
+  await prisma.transaction.update({
+    where: { tx_id: transaction.tx_id },
     data: {
       user: user?.toString() || "",
       tx_id: transaction.tx_id,

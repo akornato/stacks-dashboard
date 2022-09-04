@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { Button, useToast } from "@chakra-ui/react";
 
-export const GetStxButton: React.FC<{ address?: string }> = ({ address }) => {
+export const GetStxButton: React.FC<{
+  address?: string;
+  onSuccess: (tx_id: string) => void;
+}> = ({ address, onSuccess }) => {
   const [isFetching, setIsFetching] = useState(false);
   const toast = useToast();
 
@@ -24,6 +27,7 @@ export const GetStxButton: React.FC<{ address?: string }> = ({ address }) => {
             status: "success",
             isClosable: true,
           });
+          response.json().then(({ txId }) => onSuccess(txId));
         } else {
           throw new Error(`Network status ${response.status}`);
         }

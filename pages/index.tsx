@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Head from "next/head";
 import { Box, Stack } from "@chakra-ui/react";
 import { WalletConnectButton } from "../components/WalletConnectButton";
@@ -11,12 +11,8 @@ import {
   connectWebSocketClient,
   StacksApiWebSocketClient,
 } from "@stacks/blockchain-api-client";
-import { unionBy } from "lodash";
 import type { NextPage, GetServerSidePropsContext } from "next";
-import type {
-  Transaction,
-  TransactionResults,
-} from "@stacks/stacks-blockchain-api-types";
+import type { Transaction } from "@stacks/stacks-blockchain-api-types";
 
 export async function getServerSideProps(ctx: GetServerSidePropsContext) {
   return {
@@ -33,88 +29,129 @@ type Subscription = Awaited<
 const Home: NextPage = () => {
   const { isSignedIn } = useAuth();
   const { stxAddress } = useAccount();
-  const [transactions, setTransactions] = useState<Transaction[] | undefined>();
-  const subscriptions = useRef<Subscription[]>();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [wsClient, setWsClient] = useState<StacksApiWebSocketClient>();
+  const subscriptions = useRef<{ [tx_id: string]: Subscription }>({});
 
   useEffect(() => {
-    if (isSignedIn && stxAddress) {
-      const getTransactions = async () => {
+    connectWebSocketClient("wss://stacks-node-api.testnet.stacks.co/").then(
+      setWsClient
+    );
+  }, []);
+
+  const fetchTransaction = useCallback(
+    (tx_id: string) =>
+      fetch(
+        `https://stacks-node-api.testnet.stacks.co/extended/v1/tx/${tx_id}`
+      ).then((response) => response.json()),
+    []
+  );
+
+  const updateTransaction = useCallback(
+    async (tx_id: string) => {
+      const updatedTransaction: Transaction = await fetchTransaction(tx_id);
+
+      setTransactions((transactions) => {
+        const index =
+          transactions.findIndex(
+            (transaction) => transaction.tx_id === updatedTransaction.tx_id
+          ) || 0;
+        return [
+          ...transactions.slice(0, index),
+          updatedTransaction,
+          ...transactions.slice(index + 1),
+        ];
+      });
+
+      fetch(`/api/cache/${stxAddress}/update`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updatedTransaction),
+      });
+
+      if (wsClient) {
+        if (
+          // @ts-ignore
+          updatedTransaction.tx_status !== "pending" &&
+          subscriptions.current[tx_id]
+        ) {
+          console.log(`Unsubscribe for ${tx_id}`);
+          await subscriptions.current[tx_id].unsubscribe();
+          delete subscriptions.current[tx_id];
+        }
+        if (
+          // @ts-ignore
+          updatedTransaction.tx_status === "pending" &&
+          !subscriptions.current[tx_id]
+        ) {
+          console.log(`Subscribe for ${tx_id}`);
+          subscriptions.current[tx_id] = await wsClient.subscribeTxUpdates(
+            tx_id,
+            async () => updateTransaction(tx_id)
+          );
+        }
+      }
+    },
+    [stxAddress, wsClient, fetchTransaction]
+  );
+
+  const createTransaction = useCallback(
+    async (tx_id: string) => {
+      const transaction: Transaction = await fetchTransaction(tx_id);
+
+      setTransactions((transactions) => [...transactions, transaction]);
+
+      fetch(`/api/cache/${stxAddress}/create`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(transaction),
+      });
+
+      if (wsClient && !subscriptions.current[tx_id]) {
+        console.log(`Subscribe for ${tx_id}`);
+        subscriptions.current[tx_id] = await wsClient.subscribeTxUpdates(
+          tx_id,
+          async () => updateTransaction(tx_id)
+        );
+      }
+    },
+    [stxAddress, wsClient, fetchTransaction, updateTransaction]
+  );
+
+  useEffect(() => {
+    if (isSignedIn && stxAddress && wsClient) {
+      const readAndUpdateCachedTransactions = async () => {
         const cachedTransactions: Transaction[] = await fetch(
-          `/api/cache/${stxAddress}/find`
+          `/api/cache/${stxAddress}/read`
         ).then((response) => response.json());
 
-        console.log("cachedTransactions", cachedTransactions);
+        setTransactions(cachedTransactions);
 
-        const [mempoolTransactionResults, transactionResults]: [
-          mempoolTransactionResults: TransactionResults,
-          transactionResults: TransactionResults
-        ] = await Promise.all([
-          fetch(
-            `https://stacks-node-api.testnet.stacks.co/extended/v1/tx/mempool?recipient_address=${stxAddress}`
-          ).then((response) => response.json()),
-          fetch(
-            `https://stacks-node-api.testnet.stacks.co/extended/v1/address/${stxAddress}/transactions?offset=${cachedTransactions.length}`
-          ).then((response) => response.json()),
-        ]);
-
-        fetch(`/api/cache/${stxAddress}/create`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(transactionResults?.results),
-        });
-
-        console.log("transactionResults", transactionResults);
-
-        setTransactions(
-          unionBy(
-            cachedTransactions,
-            transactionResults?.results,
-            mempoolTransactionResults?.results,
-            (transaction) => transaction.tx_id
-          )
-        );
+        cachedTransactions
+          // @ts-ignore
+          .filter(({ tx_status }) => tx_status === "pending")
+          .forEach((transaction) => updateTransaction(transaction.tx_id));
       };
-      getTransactions();
-
-      connectWebSocketClient("wss://stacks-node-api.testnet.stacks.co/").then(
-        async (client) => {
-          subscriptions.current = [
-            await client.subscribeBlocks((event) =>
-              console.log("subscribeBlocks event", event)
-            ),
-            await client.subscribeAddressTransactions(
-              stxAddress,
-              async (event) => {
-                console.log("subscribeAddressTransactions event", event);
-                fetch(
-                  `https://stacks-node-api.testnet.stacks.co/extended/v1/tx/${event.tx_id}`
-                )
-                  .then((response) => response.json())
-                  .then((updatedTransaction: Transaction) => {
-                    console.log("updatedTransaction", updatedTransaction);
-                    setTransactions((transactions) =>
-                      unionBy(
-                        [updatedTransaction],
-                        transactions,
-                        (transaction) => transaction.tx_id
-                      )
-                    );
-                  });
-              }
-            ),
-          ];
-        }
-      );
+      readAndUpdateCachedTransactions();
     }
+
+    const unsubscribeAll = () =>
+      Object.entries(subscriptions.current).forEach(async ([tx_id, sub]) => {
+        console.log(`Unsubscribe for ${tx_id}`);
+        await sub.unsubscribe();
+        delete subscriptions.current[tx_id];
+      });
 
     if (!isSignedIn) {
-      subscriptions.current?.forEach((sub) => sub.unsubscribe());
+      unsubscribeAll();
     }
 
-    return () => subscriptions.current?.forEach((sub) => sub.unsubscribe());
-  }, [isSignedIn, stxAddress]);
+    return unsubscribeAll;
+  }, [isSignedIn, stxAddress, wsClient, updateTransaction]);
 
   return (
     <>
@@ -128,7 +165,10 @@ const Home: NextPage = () => {
           {isSignedIn && (
             <>
               <NetworkToggle />
-              <GetStxButton address={stxAddress} />
+              <GetStxButton
+                address={stxAddress}
+                onSuccess={createTransaction}
+              />
             </>
           )}
         </Stack>

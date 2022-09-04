@@ -4,7 +4,6 @@ import type { NextApiRequest, NextApiResponse } from "next";
 const prisma = new PrismaClient();
 
 export const handler = async (req: NextApiRequest, res: NextApiResponse) => {
-  await prisma.$connect();
   const transactions = await prisma.transaction.findMany({
     where: { user: req.query.user?.toString() },
   });

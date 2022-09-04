@@ -13,7 +13,7 @@ datasource db {
 model Transaction {
   user String
   tx_id   String @id
-  block_height Int
+  block_height Int?
   tx_status String
   tx_type String
   token_transfer_amount String?
