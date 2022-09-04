@@ -28,13 +28,13 @@ export const GetStxButton: React.FC<{
         response.json().then(({ txId }) => {
           if (known_tx_ids.some((tx_id) => tx_id === txId)) {
             toast({
-              description: `STX requested but the txId ${txId} in response already exists in cache, so ignoring...`,
+              description: `STX requested but the txId ${txId} in response already exists in cache. Ignoring...`,
               status: "error",
               isClosable: true,
             });
           } else {
             toast({
-              description: `STX requested`,
+              description: `STX requested tx_id ${txId}`,
               status: "success",
               isClosable: true,
             });
@@ -44,7 +44,7 @@ export const GetStxButton: React.FC<{
       })
       .catch((error) =>
         toast({
-          description: error.message,
+          description: `${error.message} (check Network tab, most likely status 429 Too Many Requests)`,
           status: "error",
           isClosable: true,
         })

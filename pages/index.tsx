@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Head from "next/head";
-import { Box, Stack } from "@chakra-ui/react";
+import { Box, Stack, useToast } from "@chakra-ui/react";
 import { WalletConnectButton } from "../components/WalletConnectButton";
 import { GetStxButton } from "../components/GetStxButton";
 import { TransactionsTable } from "../components/TransactionsTable";
@@ -34,6 +34,7 @@ const Home: NextPage = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const wsClient = useRef<StacksApiWebSocketClient>();
   const subscriptions = useRef<{ [tx_id: string]: Subscription }>({});
+  const toast = useToast();
 
   const fetchTransaction = useCallback(
     (tx_id: string) =>
@@ -73,24 +74,32 @@ const Home: NextPage = () => {
           updatedTransaction.tx_status !== "pending" &&
           subscriptions.current[tx_id]
         ) {
-          console.log(`Unsubscribe for ${tx_id}`);
           await subscriptions.current[tx_id].unsubscribe();
           delete subscriptions.current[tx_id];
+          toast({
+            description: `Subscription removed for tx_id ${tx_id}`,
+            status: "info",
+            isClosable: true,
+          });
         }
         if (
           // @ts-ignore
           updatedTransaction.tx_status === "pending" &&
           !subscriptions.current[tx_id]
         ) {
-          console.log(`Subscribe for ${tx_id}`);
           subscriptions.current[tx_id] =
             await wsClient.current.subscribeTxUpdates(tx_id, async () =>
               updateTransaction(tx_id)
             );
+          toast({
+            description: `Subscription added for tx_id ${tx_id}`,
+            status: "info",
+            isClosable: true,
+          });
         }
       }
     },
-    [stxAddress, fetchTransaction]
+    [stxAddress, fetchTransaction, toast]
   );
 
   const createTransaction = useCallback(
@@ -108,14 +117,18 @@ const Home: NextPage = () => {
       });
 
       if (wsClient.current && !subscriptions.current[tx_id]) {
-        console.log(`Subscribe for ${tx_id}`);
         subscriptions.current[tx_id] =
           await wsClient.current.subscribeTxUpdates(tx_id, async () =>
             updateTransaction(tx_id)
           );
+        toast({
+          description: `Subscription added for tx_id ${tx_id}`,
+          status: "info",
+          isClosable: true,
+        });
       }
     },
-    [stxAddress, fetchTransaction, updateTransaction]
+    [stxAddress, fetchTransaction, updateTransaction, toast]
   );
 
   useEffect(() => {
@@ -146,9 +159,13 @@ const Home: NextPage = () => {
 
     const unsubscribeAll = () =>
       Object.entries(subscriptions.current).forEach(async ([tx_id, sub]) => {
-        console.log(`Unsubscribe for ${tx_id}`);
         await sub.unsubscribe();
         delete subscriptions.current[tx_id];
+        toast({
+          description: `Subscription removed for tx_id ${tx_id}`,
+          status: "info",
+          isClosable: true,
+        });
       });
 
     if (!isSignedIn) {
@@ -157,7 +174,7 @@ const Home: NextPage = () => {
     }
 
     return unsubscribeAll;
-  }, [isSignedIn, stxAddress, isMainnet, updateTransaction]);
+  }, [isSignedIn, stxAddress, isMainnet, updateTransaction, toast]);
 
   return (
     <>
