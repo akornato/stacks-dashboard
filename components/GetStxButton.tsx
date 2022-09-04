@@ -28,7 +28,7 @@ export const GetStxButton: React.FC<{
         response.json().then(({ txId }) => {
           if (known_tx_ids.some((tx_id) => tx_id === txId)) {
             toast({
-              description: `STX requested ok but the returned txId ${txId} already exists...`,
+              description: `STX requested but the txId ${txId} in response already exists in cache, so ignoring...`,
               status: "error",
               isClosable: true,
             });
