@@ -35,7 +35,14 @@ export const TransactionsTable: React.FC<{
         </Thead>
         <Tbody>
           {transactions.map((tx) => (
-            <Tr key={tx.tx_id}>
+            <Tr
+              key={tx.tx_id}
+              style={{
+                backgroundColor:
+                  // @ts-ignore
+                  tx.tx_status === "pending" ? "pink" : "transparent",
+              }}
+            >
               <Td>{tx.tx_id}</Td>
               <Td>{tx.block_height}</Td>
               <Td>{tx.tx_status}</Td>
