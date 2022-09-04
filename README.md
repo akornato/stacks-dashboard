@@ -7,11 +7,11 @@ Dashboard for user transactions in [Stacks](https://www.stacks.co), an open-sour
 - [PlanetScale DB](https://planetscale.com) with [Prisma](https://www.prisma.io) ORM to cache transactions, both pending and confirmed
 - [Hiro WebSocket API Client](https://github.com/hirosystems/stacks-blockchain-api/tree/master/client) to update transactions on the client and in cache
 
-On load / sign in / network change the app reads transactions from the cache, updates pending transactions (both on the UI and in cache), and sets up WebSocket subscriptions for those that are still pending.
+On load / sign in / network change the app reads transactions from the cache for the signed in user account, fetches pending transactions from Hiro Stacks API, updates them on the UI and in cache, and finally sets up WebSocket subscriptions for those that are still pending.
 
-On initiating transaction (i.e. Get STX), the app updates the UI, creates a new pending transaction in the cache, and sets up a subscription for it.
+On initiated transaction (i.e. Get STX), the app updates the UI, creates a new pending transaction in the cache, and sets up an update subscription for it.
 
-On transaction update event (i.e. transaction confirmed), the app updates the UI, updates the transaction in the cache, and clears the subscription.
+On transaction update event (i.e. transaction confirmed), the app fetches an updated transaction from Hiro Stacks API, updates the UI, updates the transaction in the cache, and clears the subscription.
 
 TODO: read the transactions on SSR instead after this [issue in micros-stacks](https://github.com/fungible-systems/micro-stacks/issues/158) has been fixed. For now transactions are initially read on the client instead, hence the spinner on load.
 
