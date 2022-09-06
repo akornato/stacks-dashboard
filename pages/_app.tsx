@@ -8,6 +8,8 @@ function MyApp({ Component, pageProps }: AppProps) {
   return (
     <ClientProvider
       network="testnet"
+      // set to true if network can be switched in app
+      enableNetworkSwitching={false}
       appName="Stacks Dashboard"
       appIconUrl="/vercel.svg"
       dehydratedState={pageProps?.dehydratedState}
